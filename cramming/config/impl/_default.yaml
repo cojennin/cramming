@@ -28,7 +28,7 @@ early_termination:
 
 # Batch size settings:
 # batch_size: This is handled in train after commit 982a4d33cd7f79a48b691114ae78f6ad1cdbee69
-microbatch_size: 128 # dont make it larger than batch_size...
+microbatch_size: 512 # dont make it larger than batch_size...
 
 # Basic pytorch settings
 threads: 32 # maximal number of cpu dataloader workers used per GPU, this value will never exceed num_gpus * num_physical threads
