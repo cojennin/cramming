@@ -99,17 +99,31 @@ def prepare_pretraining_dataloader(dataset, tokenizer, cfg_train, cfg_impl):
 
     if cfg_train.reverse_dataset_order:
         dataset = dataset.select(reversed(range(len(dataset))))
-    repeated_dataloader = InfiniteDataLoader(
-        dataset,
-        sampler=sampler,
-        batch_size=cfg_impl.microbatch_size,
-        num_workers=num_workers,
-        pin_memory=cfg_impl.pin_memory,
-        drop_last=True,
-        prefetch_factor=cfg_impl.prefetch_factor if num_workers > 0 else None,
-        persistent_workers=cfg_impl.persistent_workers if num_workers > 0 else False,
-        collate_fn=collate_fn,
-    )
+        
+    if cfg_train.is_mosaic:
+        repeated_dataloader = DataLoader(
+            dataset,
+            collate_fn=collate_fn,
+            batch_size=cfg_impl.microbatch_size,
+            drop_last=True,
+            num_workers=num_workers,
+            pin_memory=cfg_impl.pin_memory,
+            prefetch_factor=cfg_impl.prefetch_factor if num_workers > 0 else None,
+            persistent_workers=cfg_impl.persistent_workers if num_workers > 0 else False,
+            timeout=0,
+        )
+    else: 
+        repeated_dataloader = InfiniteDataLoader(
+            dataset,
+            sampler=sampler,
+            batch_size=cfg_impl.microbatch_size,
+            num_workers=num_workers,
+            pin_memory=cfg_impl.pin_memory,
+            drop_last=True,
+            prefetch_factor=cfg_impl.prefetch_factor if num_workers > 0 else None,
+            persistent_workers=cfg_impl.persistent_workers if num_workers > 0 else False,
+            collate_fn=collate_fn,
+        )
     return repeated_dataloader
 
 
@@ -212,19 +226,23 @@ class PatchedDataCollatorForLanguageModeling(transformers.DataCollatorForLanguag
         # So this is the handmade version
         batch = dict()
         for key in examples[0].keys():
-            elem = examples[0][key]
+            elem = torch.as_tensor(examples[0][key])
             # block = examples[0][key].new_empty(len(examples), *examples[0][key].shape)
             # for idx, example in enumerate(examples):
             #     block[idx] = example[key]
             out = None
             if torch.utils.data.get_worker_info() is not None:
-                storage = elem._storage()._new_shared(len(examples) * 8 * elem.shape[0], device=elem.device)  # 8 for byte->long
+                try:
+                    storage = elem._storage()._new_shared(len(examples) * 8 * elem.shape[0], device=elem.device)  # 8 for byte->long
+                except Exception as e:
+                    print(e)
+                    raise e
                 # storage = elem.untyped_storage()._new_shared(len(examples) * 8 * elem.shape[0], device=elem.device)  # 8 for byte->long
                 # out = elem.new(storage).resize_(len(examples), elem.shape[0])
                 # storage = elem._typed_storage()._new_shared(len(examples) * elem.shape[0], device=elem.device) # this will be pytorch 2.0
                 out = elem.new(storage).resize_(len(examples), elem.shape[0])
 
-            batch[key] = torch.stack([example[key] for example in examples], 0, out=out).contiguous()
+            batch[key] = torch.stack([torch.as_tensor(example[key]) for example in examples], 0, out=out).contiguous()
 
         # If special token mask has been preprocessed, pop it from the dict.
         special_tokens_mask = batch.pop("special_tokens_mask", None)

@@ -1,4 +1,4 @@
 enabled: True
-entity: jonasgeiping # change this obviously ;>
+entity: mosaic-ml # change this obviously ;>
 project: cramming-pretrain
 tags: []

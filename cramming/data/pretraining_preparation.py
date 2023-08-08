@@ -14,6 +14,7 @@ from collections import defaultdict
 import json
 from omegaconf import OmegaConf
 
+from .text_data import StreamingTextDataset
 
 from .cached_datasets import CachedDataset
 from .tokenizer_preparation import construct_tokenizer, load_tokenizer
@@ -29,6 +30,21 @@ datasets.disable_caching()  # We'll save only the final preprocessed dataset
 
 def load_pretraining_corpus(cfg_data, cfg_impl):
     """Load (and optionally stage) a pre-processed corpus. Create one if it doesn't exist."""
+    
+    # Short-circuit for Mosaic
+    if cfg_data.is_mosaic:
+        tokenizer = load_tokenizer(
+            cfg_data.train_loader.dataset.tokenizer_name,
+            seq_length=cfg_data.train_loader.dataset.max_seq_len,
+            vocab_size=cfg_data.vocab_size,
+            cache_dir=cfg_impl.path,
+        )
+        
+        dataset = StreamingTextDataset(tokenizer, cfg_data.train_loader.dataset.max_seq_len, local=cfg_data.train_loader.dataset.local, remote=cfg_data.train_loader.dataset.remote, split=cfg_data.train_loader.dataset.split, shuffle=True)
+        
+        return dataset, tokenizer
+
+                
     datasets.disable_caching()
     checksum = checksum_config(cfg_data)
 

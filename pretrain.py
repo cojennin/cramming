@@ -103,7 +103,6 @@ def check_early_termination(launch_time, loss, early_termination):
 
 def collect_stats(step, loss_vals, train_time, stats, model_engine, dataloader, cfg):
     stats["step"] += [step]
-    stats["epoch"] += [dataloader.epoch_counter]
 
     tokens_per_step = cramming.utils.num_processes() * model_engine.record_tokens_per_step()
     stats["tokens"] += [step * tokens_per_step]
