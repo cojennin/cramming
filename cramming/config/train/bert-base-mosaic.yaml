@@ -39,4 +39,7 @@ objective:
   token_drop: 0.0
 reverse_dataset_order: False
 
+gradinit:
+  enabled: False
+
 budget: ${budget}
