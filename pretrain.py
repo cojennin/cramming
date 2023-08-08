@@ -66,7 +66,7 @@ def main_training_process(cfg, setup):
             state = dict(step=step, tokenizer_name=tokenizer.name_or_path)
             checkpoint_id = loss.item()
             if cramming.utils.is_main_process():
-                model_engine.save_training_checkpoint(cfg.impl, step, checkpoint_id, state=state)
+                model_engine.save_training_checkpoint(cfg, step, checkpoint_id, state=state)
 
         if not loss.detach().isfinite():
             training_allowed = False
