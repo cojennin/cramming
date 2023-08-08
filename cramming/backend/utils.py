@@ -100,6 +100,7 @@ def prepare_pretraining_dataloader(dataset, tokenizer, cfg_train, cfg_impl):
     if cfg_train.reverse_dataset_order:
         dataset = dataset.select(reversed(range(len(dataset))))
         
+    num_workers = 8
     if cfg_train.is_mosaic:
         repeated_dataloader = DataLoader(
             dataset,

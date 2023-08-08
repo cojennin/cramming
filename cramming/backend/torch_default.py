@@ -8,8 +8,8 @@ import logging
 from functools import partial
 import time
 
+import boto3
 import transformers
-
 
 from torch.distributed.optim import ZeroRedundancyOptimizer
 
@@ -306,7 +306,7 @@ class TorchEngine(torch.nn.Module):
                     self.model.load_state_dict(sanitized_state, strict=False)
                 self.model.to(**self.setup)
 
-    def save_training_checkpoint(self, identifier, directory="checkpoints", state=None):
+    def save_training_checkpoint(self, cfg, step, identifier, directory="checkpoints", state=None):
         """Path, identifier and additional client state. This checkpoint can be used to resume training.
         The default behavior is to save this checkpoint relative to the training working directory.
         """
@@ -314,13 +314,30 @@ class TorchEngine(torch.nn.Module):
             identifier_str = f"{identifier:2.4f}"
         except ValueError:
             identifier_str = str(identifier)
-        file = os.path.join(directory, f"{identifier:2.4f}.pth")
+        object_name = f"step-{step}.pth"
+        file = os.path.join(directory, object_name)
         os.makedirs(directory, exist_ok=True)
 
         optim_state = self.optimizer.state_dict()
         model_state = self.retrieve_model_state_dict()
         scheduler_state = self.scheduler.state_dict()
         torch.save([optim_state, model_state, scheduler_state, state], file)
+        
+        from composer.loggers import RemoteUploaderDownloader
+        
+        print("About to upload...")
+        name = cfg.name
+        remote_uploader_downloader = RemoteUploaderDownloader(
+            bucket_uri=f"oci://mosaicml-internal-checkpoints",
+        )
+        
+        print("Uploading...")
+        remote_uploader_downloader.remote_backend.upload_object(
+            f"connor/cramming/{name}/{object_name}",
+            file
+        )
+        print("Uploaded...")
+        
 
     def save_final_model(self, base_directory, identifier, tokenizer, cfg_arch, dryrun=False):
         """This checkpoint can be used for downstream tasks.

@@ -17,8 +17,8 @@ max_raw_chunk_size: 1e14
 
 # checkpointing and logging:
 print_loss_every_nth_step: 1000
-save_intermediate_checkpoints: False
-save_every_nth_step: 10_000
+save_intermediate_checkpoints: True
+save_every_nth_step: 1000
 
 # early termination, cancel runs that do not meet this loss threshold early.
 early_termination:
