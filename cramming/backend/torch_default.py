@@ -295,7 +295,7 @@ class TorchEngine(torch.nn.Module):
 
                 print(file)
                 model_state = torch.load(file, map_location=self.setup["device"])
-                model_state = model_state[0]
+                model_state = model_state[1]
                 print(model_state)
                 try:
                     sanitized_state = {}
