@@ -18,5 +18,7 @@ static_graph: True
 # Misc:
 foreach_optimizer: False
 
+microbatch_size: 128
+
 # Dynamo
 optimizer_context: # can be: aot_autograd_speedup, nvfuser_global, aot_nvfuser
