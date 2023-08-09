@@ -293,10 +293,7 @@ class TorchEngine(torch.nn.Module):
                 self.scheduler.load_state_dict(scheduler_state)
             else:
 
-                print(file)
                 model_state = torch.load(file, map_location=self.setup["device"])
-                model_state = model_state[1]
-                print(model_state)
                 try:
                     sanitized_state = {}
                     for k, v in model_state.items():
