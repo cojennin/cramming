@@ -1,6 +1,7 @@
 # Configuration defaults
 # Settings are separated into hyperparameters for architecture, data, implementation and train/eval hyperparams
 defaults:
+  - arch: hf-bert-tiny
   - impl: torch-default
   - wandb: none
   - eval: mnli
