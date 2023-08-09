@@ -9,6 +9,7 @@ defaults:
   - override hydra/job_logging: custom
 
 wandb:
+  enabled: true
   entity: mosaic-ml
   project: cramming-eval
 
