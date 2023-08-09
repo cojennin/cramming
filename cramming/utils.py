@@ -199,9 +199,9 @@ def find_pretrained_checkpoint(cfg, downstream_classes=None):
 
     if checkpoint_name is not None:
         # Load these checkpoints locally, might not be a huggingface model
-        tokenizer = transformers.AutoTokenizer.from_pretrained(checkpoint_name)
-        with open(os.path.join(checkpoint_name, "model_config.json"), "r") as file:
-            cfg_arch = OmegaConf.create(json.load(file))  # Could have done pure hydra here, but wanted interop
+        tokenizer = transformers.AutoTokenizer.from_pretrained("bert-base-uncased")
+        # with open(os.path.join(checkpoint_name, "model_config.json"), "r") as file:
+        #     cfg_arch = OmegaConf.create(json.load(file))  # Could have done pure hydra here, but wanted interop
 
         # Use merge from default config to build in new arguments
         # with hydra.initialize(config_path="config/arch"):
@@ -210,9 +210,11 @@ def find_pretrained_checkpoint(cfg, downstream_classes=None):
 
         # Optionally modify parts of the arch at eval time. This is not guaranteed to be a good idea ...
         # All mismatched parameters will be randomly initialized ...
-        if cfg.eval.arch_modifications is not None:
-            cfg_arch = OmegaConf.merge(cfg_arch, cfg.eval.arch_modifications)
-        model_file = os.path.join(checkpoint_name, "model.pth")
+        # if cfg.eval.arch_modifications is not None:
+        #     cfg_arch = OmegaConf.merge(cfg_arch, cfg.eval.arch_modifications)
+        model_file = checkpoint_name
+        
+        cfg_arch = cfg.arch
 
         print(cfg_arch)
 
