@@ -9,12 +9,14 @@ from .fixed_cramlm import construct_fixed_cramlm
 
 import logging
 from ..utils import is_main_process
+from transformers import BertForMaskedLM
 
 log = logging.getLogger(__name__)
 
 
 def construct_model(cfg_arch, vocab_size, downstream_classes=None):
     model = None
+    bert_model = BertForMaskedLM.from_pretrained("bert-base-uncased")
     if cfg_arch.architectures is not None:
         # attempt to solve locally
         if "ScriptableMaskedLM" in cfg_arch.architectures:
