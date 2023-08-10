@@ -66,7 +66,7 @@ def main_training_process(cfg, setup):
             state = dict(step=step, tokenizer_name=tokenizer.name_or_path)
             checkpoint_id = loss.item()
             if cramming.utils.is_main_process():
-                model_engine.save_training_checkpoint(cfg, step, checkpoint_id, state=state)
+                model_engine.save_training_checkpoint(cfg, tokenizer, step, checkpoint_id, state=state)
 
         if not loss.detach().isfinite():
             training_allowed = False
@@ -84,7 +84,8 @@ def main_training_process(cfg, setup):
         # Save final checkpoint:
         now = datetime.datetime.now()
         checkpoint_id = f"{''.join(cfg.arch.architectures)}_{now.strftime('%Y-%m-%d')}_{loss:2.4f}"
-        model_engine.save_final_model(os.path.join(cfg.base_dir, cfg.name), checkpoint_id, tokenizer, cfg.arch, cfg.dryrun)
+        # model_engine.save_final_model(os.path.join(cfg.base_dir, cfg.name), checkpoint_id, tokenizer, cfg.arch, cfg.dryrun)
+        model_engine.save_training_checkpoint(cfg, tokenizer, step, checkpoint_id, state=state)
 
 
 def check_deadline(launch_time, hour_limit):

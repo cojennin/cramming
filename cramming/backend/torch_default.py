@@ -307,24 +307,24 @@ class TorchEngine(torch.nn.Module):
                     self.model.load_state_dict(sanitized_state, strict=False)
                 self.model.to(**self.setup)
 
-    def save_training_checkpoint(self, cfg, step, identifier, directory="checkpoints", state=None):
-        """Path, identifier and additional client state. This checkpoint can be used to resume training.
-        The default behavior is to save this checkpoint relative to the training working directory.
-        """
-        try:
-            identifier_str = f"{identifier:2.4f}"
-        except ValueError:
-            identifier_str = str(identifier)
-        object_name = f"step-{step}.pth"
-        file = os.path.join(directory, object_name)
-        os.makedirs(directory, exist_ok=True)
+    # def save_training_checkpoint(self, cfg, step, identifier, directory="checkpoints", state=None):
+    #     """Path, identifier and additional client state. This checkpoint can be used to resume training.
+    #     The default behavior is to save this checkpoint relative to the training working directory.
+    #     """
+    #     try:
+    #         identifier_str = f"{identifier:2.4f}"
+    #     except ValueError:
+    #         identifier_str = str(identifier)
+    #     object_name = f"step-{step}.pth"
+        # file = os.path.join(directory, object_name)
+        # os.makedirs(directory, exist_ok=True)
 
-        optim_state = self.optimizer.state_dict()
-        model_state = self.retrieve_model_state_dict()
-        scheduler_state = self.scheduler.state_dict()
-        torch.save([optim_state, model_state, scheduler_state, state], file)
+    #     optim_state = self.optimizer.state_dict()
+    #     model_state = self.retrieve_model_state_dict()
+    #     scheduler_state = self.scheduler.state_dict()
+    #     torch.save([optim_state, model_state, scheduler_state, state], file)
         
-        from composer.loggers import RemoteUploaderDownloader
+    #     from composer.loggers import RemoteUploaderDownloader
         
         print("About to upload...")
         name = cfg.name
@@ -338,6 +338,66 @@ class TorchEngine(torch.nn.Module):
             file
         )
         print("Uploaded...")
+    
+    def save_training_checkpoint(self, cfg, tokenizer, step, identifier, directory="checkpoints", state=None):
+        """This checkpoint can be used for downstream tasks.
+        The default behavior is to save this checkpoint to a checkpoints folder under base_directory/name/checkpoints"""
+        ckpt_dir_name = f"step-{step}"
+        ckpt_dir = os.path.join(directory, ckpt_dir_name)
+        
+        object_name = f"model.pth"
+        model_file = os.path.join(ckpt_dir, object_name)
+        os.makedirs(ckpt_dir, exist_ok=True)
+        
+        # This saves tokenizer_config.json, tokenizer.json and special_tokens_map.json to this folder
+        tokenizer.save_pretrained(ckpt_dir)
+        # Save model.pth, model_config.json
+        torch.save(self.retrieve_model_state_dict(), model_file)
+        
+        with open(os.path.join(ckpt_dir, "model_config.json"), "w") as file:
+            json.dump(OmegaConf.to_container(cfg.arch, resolve=True), file)
+            
+        print("About to upload...")
+        from composer.loggers import RemoteUploaderDownloader
+        
+        name = cfg.name
+        remote_uploader_downloader = RemoteUploaderDownloader(
+            bucket_uri=f"oci://mosaicml-internal-checkpoints",
+        )
+        
+        print("Uploading ckpt...")
+        remote_uploader_downloader.remote_backend.upload_object(
+            f"connor/cramming/{name}/{ckpt_dir_name}/{object_name}",
+            model_file
+        )
+        
+        print("Uploading tokenizer_config.json...")
+        tokenizer_config_file = os.path.join(ckpt_dir, "tokenizer_config.json")
+        remote_uploader_downloader.remote_backend.upload_object(
+            f"connor/cramming/{name}/{ckpt_dir_name}/tokenizer_config_file.json",
+            tokenizer_config_file
+        )
+        
+        print("Uploading tokenizer.json...")
+        tokenizer_json_file = os.path.join(ckpt_dir, "tokenizer.json")
+        remote_uploader_downloader.remote_backend.upload_object(
+            f"connor/cramming/{name}/{ckpt_dir_name}/tokenizer.json",
+            tokenizer_json_file
+        )
+        
+        print("Uploading special_tokens_map.json...")
+        tokenizer_special_tokens_map = os.path.join(ckpt_dir, "special_tokens_map.json")
+        remote_uploader_downloader.remote_backend.upload_object(
+            f"connor/cramming/{name}/{ckpt_dir_name}/special_tokens_map.json",
+            tokenizer_special_tokens_map
+        )
+        
+        print("Uploading model_config.json...")
+        model_config_path = os.path.join(ckpt_dir, "model_config.json")
+        remote_uploader_downloader.remote_backend.upload_object(
+            f"connor/cramming/{name}/{ckpt_dir_name}/model_config.json",
+            model_config_path
+        )
         
 
     def save_final_model(self, base_directory, identifier, tokenizer, cfg_arch, dryrun=False):
